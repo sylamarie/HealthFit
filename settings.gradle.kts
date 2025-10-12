@@ -9,6 +9,9 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        // Additional repositories which can host toolchain artifacts
+        maven("https://repo1.maven.org/maven2/")
+        maven("https://packages.adoptium.net/maven/")
     }
 }
 dependencyResolutionManagement {

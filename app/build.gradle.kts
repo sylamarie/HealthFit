@@ -28,11 +28,18 @@ android {
     }
 
     // Use Java/Kotlin 17 for modern Compose/AGP
+    // Use Java/Kotlin 21 (upgrade from 17)
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlinOptions { jvmTarget = "17" }
+    // Prefer Gradle Java toolchain for consistent JDK usage when supported
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(21))
+        }
+    }
+    kotlinOptions { jvmTarget = "21" }
 
     buildFeatures { compose = true }
 }
