@@ -12,12 +12,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,6 +24,7 @@ import com.syla.healthfit.ui.Routes
 import com.syla.healthfit.ui.screens.ChecklistScreen
 import com.syla.healthfit.ui.screens.DashboardScreen
 import com.syla.healthfit.ui.screens.ProfileScreen
+import com.syla.healthfit.ui.theme.HealthFitTheme
 
 class MainActivity : ComponentActivity(), SensorEventListener {
     private val vm: MainViewModel by viewModels()
@@ -42,15 +41,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         maybeRequestPermissionAndSetupSensor()
 
         setContent {
-            MaterialTheme {
+            HealthFitTheme {
                 val nav = rememberNavController()
                 val state by vm.ui.collectAsState()
 
-                Scaffold { innerPadding ->
+                Surface(color = MaterialTheme.colorScheme.background) {
                     NavHost(
                         navController = nav,
-                        startDestination = Routes.Dashboard,
-                        modifier = Modifier.padding(innerPadding) // use Scaffold content padding
+                        startDestination = Routes.Dashboard
                     ) {
                         composable(Routes.Dashboard) {
                             DashboardScreen(
@@ -63,13 +61,15 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                         composable(Routes.Profile) {
                             ProfileScreen(
                                 initial = state.profile,
-                                onSave = { vm.saveProfile(it); nav.popBackStack() }
+                                onSave = { vm.saveProfile(it); nav.popBackStack() },
+                                onBack = { nav.popBackStack() }
                             )
                         }
                         composable(Routes.Checklist) {
                             ChecklistScreen(
                                 state = state,
-                                onToggle = { id, done -> vm.toggleChecklist(id, done) }
+                                onToggle = { id, done -> vm.toggleChecklist(id, done) },
+                                onBack = { nav.popBackStack() }
                             )
                         }
                     }

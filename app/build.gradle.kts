@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.syla.healthfit"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.syla.healthfit"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -27,11 +29,11 @@ android {
         }
     }
 
-    // Use Java/Kotlin 17 for modern Compose/AGP
-    // Use Java/Kotlin 21 (upgrade from 17)
+    // Align the Android compilation toolchain to Java/Kotlin 21
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+        isCoreLibraryDesugaringEnabled = true
     }
     // Prefer Gradle Java toolchain for consistent JDK usage when supported
     java {
@@ -39,9 +41,13 @@ android {
             languageVersion.set(JavaLanguageVersion.of(21))
         }
     }
-    kotlinOptions { jvmTarget = "21" }
-
     buildFeatures { compose = true }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
+    }
 }
 
 dependencies {
@@ -57,11 +63,16 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.iconsExtended)
     implementation(libs.androidx.navigation.compose)
 
     // Persistence + permissions
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.accompanist.permissions)
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Java time backport for pre-API 26 devices
+    coreLibraryDesugaring(libs.desugar.jdk)
 
     // Tests & tooling
     testImplementation(libs.junit)

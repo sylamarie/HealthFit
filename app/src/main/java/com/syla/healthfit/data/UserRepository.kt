@@ -1,14 +1,18 @@
 package com.syla.healthfit.data
 
 import android.content.Context
-import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.syla.healthfit.model.ChecklistItem
 import com.syla.healthfit.model.Sex
 import com.syla.healthfit.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.time.LocalDate
 
 private val Context.dataStore by preferencesDataStore(name = "healthfit_prefs")
 
@@ -20,6 +24,15 @@ private object Keys {
     val SEX = stringPreferencesKey("sex")
     val STEPS_BASELINE = intPreferencesKey("steps_baseline")
 }
+
+private fun dailyChecklistKey(dateKey: String, id: String) = "daily_${dateKey}_${id}_done"
+private fun dailyStepsKey(dateKey: String) = "daily_${dateKey}_steps_count"
+
+private fun Preferences.getBooleanSafely(name: String): Boolean =
+    asMap().entries.firstOrNull { it.key.name == name }?.value as? Boolean ?: false
+
+private fun Preferences.getIntSafely(name: String): Int =
+    (asMap().entries.firstOrNull { it.key.name == name }?.value as? Int) ?: 0
 
 class UserRepository(private val context: Context) {
 
@@ -43,23 +56,27 @@ class UserRepository(private val context: Context) {
         }
     }
 
-    fun checklistFlow(date: LocalDate): Flow<List<ChecklistItem>> =
+    fun checklistFlow(dateKey: String): Flow<List<ChecklistItem>> =
         context.dataStore.data.map { p ->
             listOf("water", "steps", "workout").map { key ->
-                val done = p[booleanPreferencesKey("${date}_$key")] ?: false
+                val prefName = dailyChecklistKey(dateKey, key)
+                val done = p.getBooleanSafely(prefName)
                 ChecklistItem(id = key, title = key.replaceFirstChar { it.uppercase() }, done = done)
             }
         }
 
-    suspend fun setChecklist(date: LocalDate, id: String, done: Boolean) {
-        context.dataStore.edit { p -> p[booleanPreferencesKey("${date}_$id")] = done }
+    suspend fun setChecklist(dateKey: String, id: String, done: Boolean) {
+        context.dataStore.edit { p -> p[booleanPreferencesKey(dailyChecklistKey(dateKey, id))] = done }
     }
 
-    fun stepsFlow(date: LocalDate): Flow<Int> =
-        context.dataStore.data.map { p -> p[intPreferencesKey("${date}_steps")] ?: 0 }
+    fun stepsFlow(dateKey: String): Flow<Int> =
+        context.dataStore.data.map { p ->
+            val prefName = dailyStepsKey(dateKey)
+            p.getIntSafely(prefName)
+        }
 
-    suspend fun setSteps(date: LocalDate, steps: Int) {
-        context.dataStore.edit { p -> p[intPreferencesKey("${date}_steps")] = steps.coerceAtLeast(0) }
+    suspend fun setSteps(dateKey: String, steps: Int) {
+        context.dataStore.edit { p -> p[intPreferencesKey(dailyStepsKey(dateKey))] = steps.coerceAtLeast(0) }
     }
 
     fun stepsBaselineFlow(): Flow<Int> = context.dataStore.data.map { it[Keys.STEPS_BASELINE] ?: 0 }
