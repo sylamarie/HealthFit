@@ -37,11 +37,11 @@
     <string name="delete">Delete</string>
     <string name="edit">Edit</string>
     <string name="nutrition_suggestions">Suggestions</string>
-    <string name="nutrition_log_title">Today's foods</string>
+    <string name="nutrition_log_title">Today’s foods</string>
 
     <!-- Calorie banners -->
-    <string name="calories_banner_positive">You still need about %1$d kcal to reach today's target.</string>
-    <string name="calories_banner_negative">You have met today's calorie target. Great work!</string>
+    <string name="calories_banner_positive">You still need about %1$d kcal to reach today’s target.</string>
+    <string name="calories_banner_negative">You have met today’s calorie target. Great work!</string>
 
     <!-- Profile -->
     <string name="profile_details">Profile details</string>

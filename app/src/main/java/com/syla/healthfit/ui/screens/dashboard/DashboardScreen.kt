@@ -83,7 +83,11 @@ private fun SummaryRow(state: DashboardState) {
         MetricCard(
             title = stringResource(id = R.string.water_card_title),
             value = "${state.metrics.waterMl} ml",
-            sub = stringResource(id = R.string.water_progress, state.metrics.waterGlasses, if (state.profile.glassSizeMl == 0) 0 else state.profile.dailyWaterGoalMl / state.profile.glassSizeMl),
+            sub = stringResource(
+                id = R.string.water_progress,
+                state.metrics.waterGlasses,
+                if (state.profile.glassSizeMl == 0) 0 else state.profile.dailyWaterGoalMl / state.profile.glassSizeMl
+            ),
             progress = if (state.profile.dailyWaterGoalMl == 0) 0f else (state.metrics.waterMl.toFloat() / state.profile.dailyWaterGoalMl).coerceIn(0f, 1f)
         )
         MetricCard(

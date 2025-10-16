@@ -1,3 +1,4 @@
+// NutritionViewModel.kt
 package com.syla.healthfit.ui.screens.nutrition
 
 import androidx.lifecycle.ViewModel
@@ -51,6 +52,14 @@ data class NutritionUiState(
     val units: List<String> get() = defaultUnits
 }
 
+private data class NutritionSnapshot(
+    val profile: UserProfile,
+    val metrics: DailyMetrics,
+    val logs: List<FoodLog>,
+    val pantry: List<FoodItem>,
+    val form: NutritionFormState
+)
+
 @HiltViewModel
 class NutritionViewModel @Inject constructor(
     private val foodRepository: FoodRepository,
@@ -66,21 +75,30 @@ class NutritionViewModel @Inject constructor(
     private val metricsFlow = today.flatMapLatest { date -> metricsRepository.metricsFor(date) }
     private val pantryFlow = foodRepository.foodItems()
 
-    val uiState: StateFlow<NutritionUiState> = combine(
+    private val snapshotFlow = combine(
         profileRepository.profileStream(),
         metricsFlow,
         logsFlow,
         pantryFlow,
-        formState,
-        searchResults
-    ) { profile, metrics, logs, pantry, form, results ->
-        val cards = HealthCalculator.calorieSuggestions(metrics.caloriesRemaining, profile, pantry)
-        NutritionUiState(
+        formState
+    ) { profile, metrics, logs, pantry, form ->
+        NutritionSnapshot(
             profile = profile,
             metrics = metrics,
             logs = logs,
             pantry = pantry,
-            form = form,
+            form = form
+        )
+    }
+
+    val uiState: StateFlow<NutritionUiState> = combine(snapshotFlow, searchResults) { snapshot, results ->
+        val cards = HealthCalculator.calorieSuggestions(snapshot.metrics.caloriesRemaining, snapshot.profile, snapshot.pantry)
+        NutritionUiState(
+            profile = snapshot.profile,
+            metrics = snapshot.metrics,
+            logs = snapshot.logs,
+            pantry = snapshot.pantry,
+            form = snapshot.form,
             searchSuggestions = results,
             suggestionCards = cards
         )

@@ -17,8 +17,8 @@ class HealthFitApplication : Application(), Configuration.Provider {
         ReminderNotificationHelper.ensureChannel(this)
     }
 
-    override fun getWorkManagerConfiguration(): Configuration =
-        Configuration.Builder()
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
             .build()
 }

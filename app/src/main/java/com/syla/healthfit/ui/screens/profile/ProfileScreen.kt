@@ -13,9 +13,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -140,7 +141,7 @@ private fun <T> DropdownField(
     label: String,
     options: List<T>,
     selected: T,
-    optionLabel: (T) -> String,
+    optionLabel: @Composable (T) -> String,
     onSelect: (T) -> Unit
 ) {
     val expanded = remember { mutableStateOf(false) }
@@ -160,9 +161,9 @@ private fun <T> DropdownField(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded.value) },
                 colors = ExposedDropdownMenuDefaults.textFieldColors()
             )
-            ExposedDropdownMenu(expanded = expanded.value, onDismissRequest = { expanded.value = false }) {
+            DropdownMenu(expanded = expanded.value, onDismissRequest = { expanded.value = false }) {
                 options.forEach { option ->
-                    androidx.compose.material3.DropdownMenuItem(
+                    DropdownMenuItem(
                         text = { Text(optionLabel(option)) },
                         onClick = {
                             onSelect(option)

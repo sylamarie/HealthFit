@@ -77,7 +77,7 @@ fun NutritionScreen(
             }
             item {
                 Text(
-                    text = stringResource(id = R.string.log_title),
+                    text = stringResource(id = R.string.nutrition_log_title),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
