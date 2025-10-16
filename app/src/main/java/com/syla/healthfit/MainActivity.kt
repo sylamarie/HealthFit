@@ -10,96 +10,107 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.syla.healthfit.ui.Routes
-import com.syla.healthfit.ui.screens.ChecklistScreen
-import com.syla.healthfit.ui.screens.DashboardScreen
-import com.syla.healthfit.ui.screens.ProfileScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import com.syla.healthfit.model.ThemeMode
+import com.syla.healthfit.sensors.StepCounterManager
+import com.syla.healthfit.ui.AppViewModel
+import com.syla.healthfit.ui.navigation.HealthFitApp
 import com.syla.healthfit.ui.theme.HealthFitTheme
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity(), SensorEventListener {
-    private val vm: MainViewModel by viewModels()
+    @Inject lateinit var stepCounterManager: StepCounterManager
+
+    private val appViewModel: AppViewModel by viewModels()
     private var sensorManager: SensorManager? = null
     private var stepSensor: Sensor? = null
-
-    private val requestActivityRecognition =
-        registerForActivityResult(RequestPermission()) { granted ->
-            if (granted) setupStepSensor()
+    private var permissionGranted by mutableStateOf(false)
+    private val permissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            permissionGranted = granted || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+            if (permissionGranted) registerStepSensor() else lifecycleScope.launch { stepCounterManager.clearBaseline() }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        maybeRequestPermissionAndSetupSensor()
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        permissionGranted = hasActivityRecognitionPermission()
+        if (permissionGranted) {
+            registerStepSensor()
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            permissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+        }
 
         setContent {
-            HealthFitTheme {
-                val nav = rememberNavController()
-                val state by vm.ui.collectAsState()
-
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    NavHost(
-                        navController = nav,
-                        startDestination = Routes.Dashboard
-                    ) {
-                        composable(Routes.Dashboard) {
-                            DashboardScreen(
-                                state = state,
-                                onGoProfile = { nav.navigate(Routes.Profile) },
-                                onGoChecklist = { nav.navigate(Routes.Checklist) },
-                                onManualStepAdd = { vm.setSteps((state.stepsToday + it).coerceAtLeast(0)) }
-                            )
-                        }
-                        composable(Routes.Profile) {
-                            ProfileScreen(
-                                initial = state.profile,
-                                onSave = { vm.saveProfile(it); nav.popBackStack() },
-                                onBack = { nav.popBackStack() }
-                            )
-                        }
-                        composable(Routes.Checklist) {
-                            ChecklistScreen(
-                                state = state,
-                                onToggle = { id, done -> vm.toggleChecklist(id, done) },
-                                onBack = { nav.popBackStack() }
-                            )
-                        }
-                    }
-                }
+            val themeMode by appViewModel.themeMode.collectAsStateWithLifecycle()
+            val darkTheme = when (themeMode) {
+                ThemeMode.System -> isSystemInDarkTheme()
+                ThemeMode.Dark -> true
+                ThemeMode.Light -> false
+            }
+            HealthFitTheme(darkTheme = darkTheme) {
+                HealthFitApp(
+                    permissionGranted = permissionGranted,
+                    onRequestPermission = { requestPermission() }
+                )
             }
         }
     }
 
-    private fun maybeRequestPermissionAndSetupSensor() {
+    private fun requestPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val granted = ContextCompat.checkSelfPermission(
-                this, Manifest.permission.ACTIVITY_RECOGNITION
-            ) == PackageManager.PERMISSION_GRANTED
-            if (granted) setupStepSensor() else requestActivityRecognition.launch(Manifest.permission.ACTIVITY_RECOGNITION)
-        } else {
-            setupStepSensor()
+            permissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
         }
     }
 
-    private fun setupStepSensor() {
-        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+    private fun registerStepSensor() {
         stepSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-        stepSensor?.let { sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
+        stepSensor?.let { sensor ->
+            sensorManager?.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        }
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
         val total = event?.values?.firstOrNull()?.toInt() ?: return
-        vm.applyStepSensor(total)
+        lifecycleScope.launch { stepCounterManager.onSensorTotal(total) }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-    override fun onDestroy() { super.onDestroy(); sensorManager?.unregisterListener(this) }
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager?.unregisterListener(this)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (permissionGranted) registerStepSensor()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        sensorManager?.unregisterListener(this)
+    }
+
+    private fun hasActivityRecognitionPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            true
+        } else {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACTIVITY_RECOGNITION
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
 }
