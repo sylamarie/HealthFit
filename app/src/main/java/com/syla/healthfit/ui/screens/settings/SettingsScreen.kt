@@ -3,9 +3,12 @@ package com.syla.healthfit.ui.screens.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -22,7 +25,13 @@ import com.syla.healthfit.R
 import com.syla.healthfit.model.ThemeMode
 
 @Composable
-fun SettingsScreen(state: SettingsUiState, onThemeChange: (ThemeMode) -> Unit, onNotifications: (Boolean) -> Unit, onGlassSizeChange: (Int) -> Unit) {
+fun SettingsScreen(
+    state: SettingsUiState,
+    onThemeChange: (ThemeMode) -> Unit,
+    onNotifications: (Boolean) -> Unit,
+    onGlassSizeChange: (Int) -> Unit,
+    onSave: () -> Unit
+) {
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -76,6 +85,15 @@ fun SettingsScreen(state: SettingsUiState, onThemeChange: (ThemeMode) -> Unit, o
                             )
                         }
                     }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Button(onClick = onSave) {
+                    Text(text = stringResource(id = R.string.save))
                 }
             }
         }

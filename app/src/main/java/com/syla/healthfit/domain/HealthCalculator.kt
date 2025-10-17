@@ -3,6 +3,7 @@ package com.syla.healthfit.domain
 import com.syla.healthfit.model.ActivityLevel
 import com.syla.healthfit.model.FoodItem
 import com.syla.healthfit.model.NutritionSuggestion
+import com.syla.healthfit.model.SuggestedPortion
 import com.syla.healthfit.model.Sex
 import com.syla.healthfit.model.UserProfile
 import kotlin.math.abs
@@ -108,10 +109,17 @@ object HealthCalculator {
             } else {
                 "Swap to ${foodA.name} and ${foodB.name}"
             }
+            val portions = mutableListOf<SuggestedPortion>()
+            portionForCalories((target * 0.6f).roundToInt(), foodA)?.let { portions += it }
+            portionForCalories((target * 0.4f).roundToInt(), foodB)?.let { portions += it }
+            if (portions.isEmpty()) {
+                portionForCalories(target, foodA)?.let { portions += it }
+            }
             ideas += NutritionSuggestion(
                 title = "$action ~${target} kcal",
                 description = descriptor,
-                calories = if (remainingCalories >= 0) target else -target
+                calories = if (remainingCalories >= 0) target else -target,
+                portions = portions
             )
         }
         if (ideas.isEmpty()) {
@@ -128,4 +136,41 @@ object HealthCalculator {
         if (remainingCalories <= 0) return false
         return hourOfDay >= 15 // mid-afternoon reminder
     }
+}
+
+private fun portionForCalories(targetCalories: Int, food: FoodItem): SuggestedPortion? {
+    if (targetCalories <= 0 || food.kcalPer100g <= 0f) return null
+    val gramsNeeded = (targetCalories / food.kcalPer100g) * 100f
+    if (gramsNeeded <= 0f) return null
+    val unit = normalizeUnit(food.defaultUnit)
+    val gramsPerUnit = gramsPerUnit(unit)
+    val rawAmount = if (gramsPerUnit <= 0f) gramsNeeded else gramsNeeded / gramsPerUnit
+    val roundedAmount = if (rawAmount >= 100f) {
+        rawAmount.roundToInt().toFloat()
+    } else {
+        (rawAmount * 10f).roundToInt() / 10f
+    }
+    return SuggestedPortion(food = food, amount = roundedAmount, unit = unit)
+}
+
+private fun gramsPerUnit(unit: String): Float = when (unit.lowercase()) {
+    "g", "gram", "grams" -> 1f
+    "ml", "milliliter", "milliliters" -> 1f
+    "cup", "cups" -> 240f
+    "tbsp", "tablespoon", "tablespoons" -> 15f
+    "tsp", "teaspoon", "teaspoons" -> 5f
+    "slice", "slices" -> 30f
+    "piece", "pieces", "pcs" -> 50f
+    else -> 100f
+}
+
+private fun normalizeUnit(unit: String): String = when (unit.lowercase()) {
+    "gram", "grams" -> "g"
+    "milliliter", "milliliters" -> "ml"
+    "cup", "cups" -> "cup"
+    "tablespoon", "tablespoons" -> "tbsp"
+    "teaspoon", "teaspoons" -> "tsp"
+    "pieces", "pcs" -> "piece"
+    "slice", "slices" -> "slice"
+    else -> unit.ifBlank { "g" }
 }

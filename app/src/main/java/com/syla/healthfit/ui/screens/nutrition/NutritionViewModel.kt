@@ -1,4 +1,3 @@
-// NutritionViewModel.kt
 package com.syla.healthfit.ui.screens.nutrition
 
 import androidx.lifecycle.ViewModel
@@ -25,6 +24,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.LocalDate
+import java.util.Locale
 import javax.inject.Inject
 
 private val defaultUnits = listOf("g", "ml", "piece", "slice", "tbsp", "cup")
@@ -144,6 +144,23 @@ class NutritionViewModel @Inject constructor(
         )
     }
 
+    fun applySuggestion(suggestion: NutritionSuggestion) {
+        val portion = suggestion.portions.firstOrNull() ?: return
+        val amount = portion.amount
+        val amountText = if (amount % 1f == 0f) {
+            amount.toInt().toString()
+        } else {
+            String.format(Locale.getDefault(), "%.1f", amount)
+        }
+        formState.value = NutritionFormState(
+            amount = amountText,
+            unit = portion.unit,
+            query = portion.food.name,
+            customCalories = kotlin.math.abs(suggestion.calories).toString(),
+            selectedFood = portion.food
+        )
+    }
+
     fun editLog(log: FoodLog) {
         viewModelScope.launch {
             val food = log.foodItemId?.let { foodRepository.findById(it) }
@@ -184,6 +201,7 @@ class NutritionViewModel @Inject constructor(
             foodRepository.insertLog(entry)
             syncCalories()
             formState.value = NutritionFormState(unit = form.unit)
+            searchResults.value = emptyList()
         }
     }
 

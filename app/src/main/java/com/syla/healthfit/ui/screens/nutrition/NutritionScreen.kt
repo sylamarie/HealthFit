@@ -2,6 +2,7 @@ package com.syla.healthfit.ui.screens.nutrition
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +32,7 @@ import com.syla.healthfit.R
 import com.syla.healthfit.model.FoodItem
 import com.syla.healthfit.model.FoodLog
 import com.syla.healthfit.model.NutritionSuggestion
+import java.util.Locale
 
 @Composable
 fun NutritionScreen(
@@ -40,6 +42,7 @@ fun NutritionScreen(
     onQueryChange: (String) -> Unit,
     onCustomCaloriesChange: (String) -> Unit,
     onSelectFood: (FoodItem) -> Unit,
+    onSuggestionSelect: (NutritionSuggestion) -> Unit,
     onSave: () -> Unit,
     onEdit: (FoodLog) -> Unit,
     onDelete: (FoodLog) -> Unit
@@ -48,7 +51,7 @@ fun NutritionScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+            contentPadding = PaddingValues(16.dp)
         ) {
             item {
                 NutritionSummary(state)
@@ -72,7 +75,7 @@ fun NutritionScreen(
                     )
                 }
                 items(state.suggestionCards) { suggestion ->
-                    SuggestionCard(suggestion)
+                    SuggestionCard(suggestion, onClick = { onSuggestionSelect(suggestion) })
                 }
             }
             item {
@@ -204,13 +207,30 @@ private fun FoodLogRow(log: FoodLog, onEdit: () -> Unit, onDelete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SuggestionCard(suggestion: NutritionSuggestion) {
-    Card {
+private fun SuggestionCard(suggestion: NutritionSuggestion, onClick: () -> Unit) {
+    Card(onClick = onClick) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(text = suggestion.title, style = MaterialTheme.typography.titleSmall)
             Text(text = suggestion.description, style = MaterialTheme.typography.bodySmall)
+            if (suggestion.portions.isNotEmpty()) {
+                suggestion.portions.forEach { portion ->
+                    Text(
+                        text = "~${formatAmount(portion.amount)} ${portion.unit} ${portion.food.name}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
             Text(text = "${suggestion.calories} kcal", fontWeight = FontWeight.Medium)
         }
+    }
+}
+
+private fun formatAmount(value: Float): String {
+    return if (value % 1f == 0f) {
+        value.toInt().toString()
+    } else {
+        String.format(Locale.getDefault(), "%.1f", value)
     }
 }

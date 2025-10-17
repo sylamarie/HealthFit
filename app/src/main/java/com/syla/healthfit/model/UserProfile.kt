@@ -55,8 +55,15 @@ data class FoodLog(
     val computedKcal: Int
 )
 
+data class SuggestedPortion(
+    val food: FoodItem,
+    val amount: Float,
+    val unit: String
+)
+
 data class NutritionSuggestion(
     val title: String,
     val description: String,
-    val calories: Int
+    val calories: Int,
+    val portions: List<SuggestedPortion> = emptyList()
 )

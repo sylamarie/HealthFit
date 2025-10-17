@@ -87,6 +87,7 @@ fun HealthFitApp(
                     onQueryChange = viewModel::updateQuery,
                     onCustomCaloriesChange = viewModel::updateCustomCalories,
                     onSelectFood = viewModel::selectFood,
+                    onSuggestionSelect = viewModel::applySuggestion,
                     onSave = viewModel::saveEntry,
                     onEdit = viewModel::editLog,
                     onDelete = viewModel::deleteLog
@@ -108,7 +109,16 @@ fun HealthFitApp(
                     state = state,
                     onThemeChange = viewModel::updateTheme,
                     onNotifications = viewModel::updateNotifications,
-                    onGlassSizeChange = viewModel::updateGlassSize
+                    onGlassSizeChange = viewModel::updateGlassSize,
+                    onSave = {
+                        navController.navigate(AppDestination.Dashboard.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
         }

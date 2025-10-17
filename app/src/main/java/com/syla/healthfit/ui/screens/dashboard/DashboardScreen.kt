@@ -2,11 +2,10 @@ package com.syla.healthfit.ui.screens.dashboard
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.syla.healthfit.R
 import com.syla.healthfit.model.NutritionSuggestion
+import java.util.Locale
 
 @Composable
 fun DashboardScreen(
@@ -36,37 +36,61 @@ fun DashboardScreen(
     Surface(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { SummaryRow(state) }
             item {
-                Text(text = stringResource(id = R.string.dashboard_quick_actions), style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(onClick = onNavigateSteps, modifier = Modifier.weight(1f)) {
-                        Text(text = stringResource(id = R.string.steps_card_title))
-                    }
-                    Button(onClick = onNavigateWater, modifier = Modifier.weight(1f)) {
-                        Text(text = stringResource(id = R.string.water_card_title))
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = onNavigateNutrition, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = stringResource(id = R.string.nutrition_card_title))
-                }
+                QuickActions(
+                    onNavigateSteps = onNavigateSteps,
+                    onNavigateWater = onNavigateWater,
+                    onNavigateNutrition = onNavigateNutrition
+                )
             }
             if (state.suggestions.isNotEmpty()) {
                 item {
-                    Text(text = stringResource(id = R.string.nutrition_suggestions), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = stringResource(id = R.string.nutrition_suggestions),
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
-                items(state.suggestions) { suggestion -> SuggestionCard(suggestion) }
+                items(
+                    items = state.suggestions,
+                    key = { suggestion -> "${suggestion.title}-${suggestion.calories}" }
+                ) { suggestion ->
+                    SuggestionCard(suggestion)
+                }
             }
             item {
                 Button(onClick = onNavigateProfile, modifier = Modifier.fillMaxWidth()) {
                     Text(text = stringResource(id = R.string.nav_profile))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun QuickActions(
+    onNavigateSteps: () -> Unit,
+    onNavigateWater: () -> Unit,
+    onNavigateNutrition: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(id = R.string.dashboard_quick_actions),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = onNavigateSteps, modifier = Modifier.weight(1f)) {
+                Text(text = stringResource(id = R.string.steps_card_title))
+            }
+            Button(onClick = onNavigateWater, modifier = Modifier.weight(1f)) {
+                Text(text = stringResource(id = R.string.water_card_title))
+            }
+        }
+        Button(onClick = onNavigateNutrition, modifier = Modifier.fillMaxWidth()) {
+            Text(text = stringResource(id = R.string.nutrition_card_title))
         }
     }
 }
@@ -117,7 +141,23 @@ private fun SuggestionCard(suggestion: NutritionSuggestion) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(text = suggestion.title, style = MaterialTheme.typography.titleSmall)
             Text(text = suggestion.description, style = MaterialTheme.typography.bodySmall)
+            if (suggestion.portions.isNotEmpty()) {
+                suggestion.portions.forEach { portion ->
+                    Text(
+                        text = "~${formatAmount(portion.amount)} ${portion.unit} ${portion.food.name}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
             Text(text = "${suggestion.calories} kcal", fontWeight = FontWeight.Medium)
         }
+    }
+}
+
+private fun formatAmount(value: Float): String {
+    return if (value % 1f == 0f) {
+        value.toInt().toString()
+    } else {
+        String.format(Locale.getDefault(), "%.1f", value)
     }
 }
